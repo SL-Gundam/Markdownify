@@ -247,7 +247,7 @@ class ConverterTestCase extends TestCase
             . PHP_EOL
             . 'McHale';
         $data['followed-by-text-with-link']['html'] = 'This is plain text<br /><ol><li>Plain a list item</li><li><strong>Bold list item</strong></li><li><em>Italic list item</em></li></ol>Here we have a <a href="https://www.helloworld.com">link</a> as well!';
-        $data['followed-by-text-with-link']['md'] = 'This is plain text  ' . PHP_EOL
+        $data['followed-by-text-with-link']['md'] = 'This is plain text' . PHP_EOL
             . PHP_EOL
             . PHP_EOL
             . '  1. Plain a list item' . PHP_EOL
