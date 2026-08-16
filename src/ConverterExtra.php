@@ -393,13 +393,13 @@ class ConverterExtra extends Converter
         switch ($this->table['aligns'][$col]) {
             default:
             case 'left':
-                $content .= str_repeat(' ', $this->table['col_widths'][$col] - $this->strlen($content));
+                $content .= str_repeat(' ', $this->table['col_widths'][$col] - $this->getMaxColWidth($content, $this->table['col_widths'][$col]));
                 break;
             case 'right':
-                $content = str_repeat(' ', $this->table['col_widths'][$col] - $this->strlen($content)) . $content;
+                $content = str_repeat(' ', $this->table['col_widths'][$col] - $this->getMaxColWidth($content, $this->table['col_widths'][$col])) . $content;
                 break;
             case 'center':
-                $paddingNeeded = $this->table['col_widths'][$col] - $this->strlen($content);
+                $paddingNeeded = $this->table['col_widths'][$col] - $this->getMaxColWidth($content, $this->table['col_widths'][$col]);
                 $left = floor($paddingNeeded / 2);
                 $right = $paddingNeeded - $left;
                 $content = str_repeat(' ', $left) . $content . str_repeat(' ', $right);
@@ -447,7 +447,7 @@ class ConverterExtra extends Converter
             if (!isset($this->table['col_widths'][$this->col])) {
                 $this->table['col_widths'][$this->col] = 0;
             }
-            $this->table['col_widths'][$this->col] = max($this->table['col_widths'][$this->col], $this->strlen($buffer));
+            $this->table['col_widths'][$this->col] = $this->getMaxColWidth($buffer);
             $this->table['rows'][$this->row][$this->col] = $buffer;
         }
     }
@@ -658,5 +658,26 @@ class ConverterExtra extends Converter
     public function setAddCssClass($addCssClass)
     {
         $this->addCssClass = $addCssClass;
+    }
+
+    /**
+     * Get the max line/column width accounting for new lines
+     *
+     * @param string $content
+     * @return integer $maxColLength
+     */
+    protected function getMaxColWidth($content, $curColLength = NULL)
+    {
+        if ($curColLength === NULL) {
+            $curColLength = $this->table['col_widths'][$this->col];
+        }
+
+        if (strpbrk($content, "\r\n") !== false) {
+            $maxColLength = max($curColLength, max(array_map([$this, 'strlen'], preg_split('/\r\n|\r|\n/', $content))));
+        } else {
+            $maxColLength = max($curColLength, $this->strlen($content));
+        }
+
+        return $maxColLength;
     }
 }
