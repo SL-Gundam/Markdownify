@@ -1,3 +1,9 @@
+## Fork Information
+
+This repository is a fork of Elephant418/Markdownify.
+
+The fork contains modifications required by the EmailReporting plugin for MantisBT and is maintained by SL-Gundam.
+
 # Markdownify
 
 [![Tests](https://github.com/Elephant418/Markdownify/actions/workflows/tests.yml/badge.svg?branch=master)](https://github.com/Elephant418/Markdownify/actions/workflows/tests.yml)

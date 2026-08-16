@@ -1,7 +1,7 @@
 {
-    "name": "pixel418/markdownify",
+    "name": "sl-gundam/markdownify",
     "type": "lib",
-    "description": "The HTML to Markdown converter for PHP ",
+    "description": "Fork of Elephant418/Markdownify with fixes/improvements for EmailReporting",
     "keywords": ["markdown", "html", "converter", "markdownify"],
     "license": "MIT",
     "homepage": "https://github.com/elephant418/Markdownify",
@@ -16,6 +16,10 @@
             "name": "Thomas Zilliox",
             "email": "hello@tzi.fr",
             "homepage": "https://tzi.fr"
+        },
+        {
+            "name": "SL-Gundam",
+            "homepage": "https://github.com/SL-Gundam"
         }
     ],
     "require": {
