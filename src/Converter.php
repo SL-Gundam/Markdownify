@@ -229,11 +229,11 @@ class Converter
     protected $indent = '';
 
     /**
-     * previous indentation, when we want to disable current indentation and get it back later
+     * Saved indentation while preserving raw HTML inside <pre> blocks.
      *
      * @var string
      */
-    static $previousIndent = '';
+    protected $preIndent = '';
 
     /**
      * constructor, set options, setup parser
@@ -555,7 +555,7 @@ class Converter
                     // don't indent inside <pre> tags
                     if ($this->parser->tagName == 'pre') {
                         $this->out($this->parser->node);
-                        $this->previousIndent = $this->indent;
+                        $this->preIndent = $this->indent;
                         $this->indent = '';
                     } else {
                         $this->out($this->parser->node . "\n" . $this->indent);
@@ -576,7 +576,7 @@ class Converter
                     } else {
                         // reset indentation
                         $this->out($this->parser->node);
-                        $this->indent = $this->previousIndent;
+                        $this->indent = $this->preIndent;
                     }
 
                     if (in_array($this->parent(), ['ins', 'del'])) {
@@ -932,6 +932,16 @@ class Converter
             $this->buffer();
         } else {
             $buffer = $this->unbuffer();
+            $buffer = str_replace("\r\n", "\n", $buffer);
+            $buffer = str_replace("\r", "\n", $buffer);
+            if (preg_match('#(?:<br\s*/?>|&lt;br\s*/?>)#i', $buffer) || strpos($buffer, "\n") !== false) {
+                $buffer = preg_replace('#(?:<br\s*/?>|&lt;br\s*/?>)\n?#i', "\n", $buffer);
+                $buffer = trim($buffer, "\r\n");
+                $this->out("```\n" . $buffer . "\n```", true);
+                $this->setLineBreaks(2);
+
+                return;
+            }
             // use as many backticks as needed
             preg_match_all('#`+#', $buffer, $matches);
             if (!empty($matches[0])) {

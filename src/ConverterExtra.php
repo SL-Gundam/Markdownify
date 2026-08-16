@@ -4,6 +4,26 @@ namespace Markdownify;
 
 class ConverterExtra extends Converter
 {
+    /**
+     * Table header lookahead pattern.
+     *
+     * @var string
+     */
+    protected $tableLookaheadHeader = '';
+
+    /**
+     * Table body lookahead pattern.
+     *
+     * @var string
+     */
+    protected $tableLookaheadBody = '';
+
+    /**
+     * Table cell fragment used to assemble lookahead patterns.
+     *
+     * @var string
+     */
+    protected $tdSubstitute = '';
 
     /**
      * table data, including rows with content and the maximum width of each col
@@ -27,7 +47,28 @@ class ConverterExtra extends Converter
     protected $row = 0;
 
     /**
-     * Add CSS class after the tag
+     * Whether the current first row contains only header cells.
+     *
+     * @var bool
+     */
+    protected $tableFirstRowIsHeader = false;
+
+    /**
+     * Number of header cells found in the current row.
+     *
+     * @var int
+     */
+    protected $tableCurrentRowHeaderCells = 0;
+
+    /**
+     * Number of data cells found in the current row.
+     *
+     * @var int
+     */
+    protected $tableCurrentRowDataCells = 0;
+
+    /**
+     * Whether Markdown Extra CSS selectors should be emitted.
      *
      * @var bool
      */
@@ -247,13 +288,16 @@ class ConverterExtra extends Converter
                         $regEx .= $td . $this->tdSubstitute;
                     }
                     $regEx = sprintf($this->tableLookaheadBody, $regEx);
-                    if (preg_match($regEx, $this->parser->html, $matches, null, strlen($matches[0]))) {
+                    if (preg_match($regEx, $this->parser->html, $matches, 0, strlen($matches[0]))) {
                         // this is a markdownable table tag!
                         $this->table = [
                             'rows' => [],
                             'col_widths' => [],
                             'aligns' => $aligns,
                         ];
+                        $this->tableFirstRowIsHeader = true;
+                        $this->tableCurrentRowHeaderCells = 0;
+                        $this->tableCurrentRowDataCells = 0;
                         $this->row = 0;
                     } else {
                         // non markdownable table
@@ -269,6 +313,9 @@ class ConverterExtra extends Converter
                     'col_widths' => [],
                     'aligns' => [],
                 ];
+                $this->tableFirstRowIsHeader = false;
+                $this->tableCurrentRowHeaderCells = 0;
+                $this->tableCurrentRowDataCells = 0;
                 $this->row = 0;
             }
         } else {
@@ -276,6 +323,11 @@ class ConverterExtra extends Converter
             $separator = [];
             if (!isset($this->table['aligns'])) {
                 $this->table['aligns'] = [];
+            }
+            foreach (array_keys($this->table['col_widths']) as $col) {
+                if (!isset($this->table['aligns'][$col])) {
+                    $this->table['aligns'][$col] = '';
+                }
             }
             // seperator with correct align identifiers
             foreach ($this->table['aligns'] as $col => $align) {
@@ -302,16 +354,25 @@ class ConverterExtra extends Converter
             $rows = [];
             // add padding
             array_walk_recursive($this->table['rows'], [&$this, 'alignTdContent']);
-            if (!empty( $this->table['rows'])) {
+            if ($this->tableFirstRowIsHeader) {
                 $header = array_shift($this->table['rows']);
-                array_push($rows, '| ' . implode(' | ', $header) . ' |');
-                array_push($rows, $separator);
-                foreach ($this->table['rows'] as $row) {
-                    array_push($rows, '| ' . implode(' | ', $row) . ' |');
+            } else {
+                $header = [];
+                foreach ($this->table['col_widths'] as $col => $width) {
+                    $header[$col] = str_repeat(' ', $width);
                 }
-                $this->out(implode("\n" . $this->indent, $rows));
+                ksort($header);
             }
+            array_push($rows, '| ' . implode(' | ', $header) . ' |');
+            array_push($rows, $separator);
+            foreach ($this->table['rows'] as $row) {
+                array_push($rows, '| ' . implode(' | ', $row) . ' |');
+            }
+            $this->out(implode("\n" . $this->indent, $rows));
             $this->table = [];
+            $this->tableFirstRowIsHeader = false;
+            $this->tableCurrentRowHeaderCells = 0;
+            $this->tableCurrentRowDataCells = 0;
             $this->setLineBreaks(2);
         }
     }
@@ -356,7 +417,12 @@ class ConverterExtra extends Converter
     {
         if ($this->parser->isStartTag) {
             $this->col = -1;
+            $this->tableCurrentRowHeaderCells = 0;
+            $this->tableCurrentRowDataCells = 0;
         } else {
+            if ($this->row === 0) {
+                $this->tableFirstRowIsHeader = $this->tableCurrentRowHeaderCells > 0 && $this->tableCurrentRowDataCells === 0;
+            }
             $this->row++;
         }
     }
@@ -370,6 +436,7 @@ class ConverterExtra extends Converter
     protected function handleTag_td()
     {
         if ($this->parser->isStartTag) {
+            $this->tableCurrentRowDataCells++;
             $this->col++;
             if (!isset($this->table['col_widths'][$this->col])) {
                 $this->table['col_widths'][$this->col] = 0;
@@ -393,6 +460,10 @@ class ConverterExtra extends Converter
      */
     protected function handleTag_th()
     {
+        if ($this->parser->isStartTag) {
+            $this->tableCurrentRowHeaderCells++;
+            $this->tableCurrentRowDataCells--;
+        }
         if (!$this->keepHTML && !isset($this->table['rows'][1]) && !isset($this->table['aligns'][$this->col + 1])) {
             if (isset($this->parser->tagAttributes['align'])) {
                 $this->table['aligns'][$this->col + 1] = $this->parser->tagAttributes['align'];
@@ -579,7 +650,7 @@ class ConverterExtra extends Converter
     }
 
     /**
-     * set add CSS class after the tag
+     * Enable or disable Markdown Extra CSS selector output.
      *
      * @param bool $addCssClass
      * @return void
