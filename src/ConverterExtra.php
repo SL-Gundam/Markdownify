@@ -666,18 +666,25 @@ class ConverterExtra extends Converter
      * @param string $content
      * @return integer $maxColLength
      */
-    protected function getMaxColWidth($content, $curColLength = NULL)
+    protected function getMaxColWidth($content, $curColWidth = NULL)
     {
-        if ($curColLength === NULL) {
-            $curColLength = $this->table['col_widths'][$this->col];
+        if ($curColWidth === NULL) {
+            $curMaxColWidth = $this->table['col_widths'][$this->col];
+        }
+        else {
+            $curMaxColWidth = 0;
         }
 
         if (strpbrk($content, "\r\n") !== false) {
-            $maxColLength = max($curColLength, max(array_map([$this, 'strlen'], preg_split('/\r\n|\r|\n/', $content))));
+            $maxColWidth = max($curMaxColWidth, max(array_map([$this, 'strlen'], preg_split('/\r\n|\r|\n/', $content))));
         } else {
-            $maxColLength = max($curColLength, $this->strlen($content));
+            $maxColWidth = max($curMaxColWidth, $this->strlen($content));
         }
 
-        return $maxColLength;
+		if ($curColWidth !== NULL && $maxColWidth > $curColWidth) {
+		    $maxColWidth = $curColWidth;
+		}
+
+        return $maxColWidth;
     }
 }
