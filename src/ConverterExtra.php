@@ -676,7 +676,10 @@ class ConverterExtra extends Converter
      */
     public function nl2br($content)
     {
-        $content = str_replace( ["\r\n", "\r", "\n"], '<br />', $content );
+        if ( !preg_match('/(?:[^\\\\]|^)\\|/m', $content))
+        {
+            $content = str_replace( ["\r\n", "\r", "\n"], '<br />', $content );
+        }
 
         return $content;
     }
