@@ -412,7 +412,7 @@ class ConverterExtra extends Converter
                 $content = str_repeat(' ', $left) . $content . str_repeat(' ', $right);
                 break;
         }
-		$content = $this->nl2br($content);
+        $content = $this->nl2br($content);
     }
 
     /**
@@ -669,7 +669,7 @@ class ConverterExtra extends Converter
     }
 
     /**
-     * Replace linebreaks with HTML line breaks
+     * Replace linebreaks with HTML line breaks except for tables within tables
      *
      * @param string $content
      * @return void
@@ -685,7 +685,7 @@ class ConverterExtra extends Converter
     }
 
     /**
-     * Get the max line/column width accounting for new lines
+     * Get the max line/column width
      *
      * @param string $content
      * @param integer $curColWidth
