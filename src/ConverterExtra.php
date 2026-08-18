@@ -75,6 +75,13 @@ class ConverterExtra extends Converter
     protected $addCssClass = true;
 
     /**
+     * Whether Markdown Extra CSS selectors should be emitted.
+     *
+     * @var bool
+     */
+    protected $maxColWidth = 50;
+
+    /**
      * constructor, see Markdownify::Markdownify() for more information
      */
     public function __construct($linksAfterEachParagraph = self::LINK_AFTER_CONTENT, $bodyWidth = MDFY_BODYWIDTH, $keepHTML = MDFY_KEEPHTML)
@@ -405,6 +412,7 @@ class ConverterExtra extends Converter
                 $content = str_repeat(' ', $left) . $content . str_repeat(' ', $right);
                 break;
         }
+		$content = $this->nl2br($content);
     }
 
     /**
@@ -661,9 +669,23 @@ class ConverterExtra extends Converter
     }
 
     /**
+     * Replace linebreaks with HTML line breaks
+     *
+     * @param string $content
+     * @return void
+     */
+    public function nl2br($content)
+    {
+        $content = str_replace( ["\r\n", "\r", "\n"], '<br />', $content );
+
+        return $content;
+    }
+
+    /**
      * Get the max line/column width accounting for new lines
      *
      * @param string $content
+     * @param integer $curColWidth
      * @return integer $maxColLength
      */
     protected function getMaxColWidth($content, $curColWidth = NULL)
@@ -675,16 +697,12 @@ class ConverterExtra extends Converter
             $curMaxColWidth = 0;
         }
 
-        if (strpbrk($content, "\r\n") !== false) {
-            $maxColWidth = max($curMaxColWidth, max(array_map([$this, 'strlen'], preg_split('/\r\n|\r|\n/', $content))));
-        } else {
-            $maxColWidth = max($curMaxColWidth, $this->strlen($content));
-        }
+        $maxColWidth = max($curMaxColWidth, $this->strlen($content));
 
 		if ($curColWidth !== NULL && $maxColWidth > $curColWidth) {
-		    $maxColWidth = $curColWidth;
+		    return $curColWidth;
 		}
 
-        return $maxColWidth;
+        return( ( $maxColWidth < $this->maxColWidth ) ? $maxColWidth : $this->maxColWidth );
     }
 }
