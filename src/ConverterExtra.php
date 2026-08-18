@@ -75,7 +75,7 @@ class ConverterExtra extends Converter
     protected $addCssClass = true;
 
     /**
-     * Whether Markdown Extra CSS selectors should be emitted.
+     * Max column width for table markdown
      *
      * @var bool
      */
