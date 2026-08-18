@@ -75,6 +75,13 @@ class ConverterExtra extends Converter
     protected $addCssClass = true;
 
     /**
+     * Max column width for table markdown
+     *
+     * @var bool
+     */
+    protected $maxColWidth = 50;
+
+    /**
      * constructor, see Markdownify::Markdownify() for more information
      */
     public function __construct($linksAfterEachParagraph = self::LINK_AFTER_CONTENT, $bodyWidth = MDFY_BODYWIDTH, $keepHTML = MDFY_KEEPHTML)
@@ -393,18 +400,19 @@ class ConverterExtra extends Converter
         switch ($this->table['aligns'][$col]) {
             default:
             case 'left':
-                $content .= str_repeat(' ', $this->table['col_widths'][$col] - $this->strlen($content));
+                $content .= str_repeat(' ', $this->table['col_widths'][$col] - $this->getMaxColWidth($content, $this->table['col_widths'][$col]));
                 break;
             case 'right':
-                $content = str_repeat(' ', $this->table['col_widths'][$col] - $this->strlen($content)) . $content;
+                $content = str_repeat(' ', $this->table['col_widths'][$col] - $this->getMaxColWidth($content, $this->table['col_widths'][$col])) . $content;
                 break;
             case 'center':
-                $paddingNeeded = $this->table['col_widths'][$col] - $this->strlen($content);
+                $paddingNeeded = $this->table['col_widths'][$col] - $this->getMaxColWidth($content, $this->table['col_widths'][$col]);
                 $left = floor($paddingNeeded / 2);
                 $right = $paddingNeeded - $left;
                 $content = str_repeat(' ', $left) . $content . str_repeat(' ', $right);
                 break;
         }
+        $content = $this->nl2br($content);
     }
 
     /**
@@ -447,7 +455,7 @@ class ConverterExtra extends Converter
             if (!isset($this->table['col_widths'][$this->col])) {
                 $this->table['col_widths'][$this->col] = 0;
             }
-            $this->table['col_widths'][$this->col] = max($this->table['col_widths'][$this->col], $this->strlen($buffer));
+            $this->table['col_widths'][$this->col] = $this->getMaxColWidth($buffer);
             $this->table['rows'][$this->row][$this->col] = $buffer;
         }
     }
@@ -658,5 +666,46 @@ class ConverterExtra extends Converter
     public function setAddCssClass($addCssClass)
     {
         $this->addCssClass = $addCssClass;
+    }
+
+    /**
+     * Replace linebreaks with HTML line breaks except for tables within tables
+     *
+     * @param string $content
+     * @return void
+     */
+    public function nl2br($content)
+    {
+        if ( !preg_match('/(?:[^\\\\]|^)\\|/m', $content))
+        {
+            $content = str_replace( ["\r\n", "\r", "\n"], '<br />', $content );
+        }
+
+        return $content;
+    }
+
+    /**
+     * Get the max line/column width
+     *
+     * @param string $content
+     * @param integer $curColWidth
+     * @return integer $maxColLength
+     */
+    protected function getMaxColWidth($content, $curColWidth = NULL)
+    {
+        if ($curColWidth === NULL) {
+            $curMaxColWidth = $this->table['col_widths'][$this->col];
+        }
+        else {
+            $curMaxColWidth = 0;
+        }
+
+        $maxColWidth = max($curMaxColWidth, $this->strlen($content));
+
+        if ($curColWidth !== NULL && $maxColWidth > $curColWidth) {
+            return $curColWidth;
+        }
+
+        return( ( $maxColWidth < $this->maxColWidth ) ? $maxColWidth : $this->maxColWidth );
     }
 }
