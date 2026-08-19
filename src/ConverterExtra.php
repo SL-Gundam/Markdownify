@@ -412,6 +412,7 @@ class ConverterExtra extends Converter
                 $content = str_repeat(' ', $left) . $content . str_repeat(' ', $right);
                 break;
         }
+        $content = $this->nl2br($content);
     }
 
     /**
@@ -665,6 +666,19 @@ class ConverterExtra extends Converter
     public function setAddCssClass($addCssClass)
     {
         $this->addCssClass = $addCssClass;
+    }
+
+    /**
+     * Replace linebreaks with HTML line breaks
+     *
+     * @param string $content
+     * @return string $content
+     */
+    protected function nl2br($content)
+    {
+        $content = str_replace( ["\r\n", "\r", "\n"], '<br />', $content );
+
+        return $content;
     }
 
     /**
