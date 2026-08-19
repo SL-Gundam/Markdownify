@@ -682,7 +682,7 @@ class ConverterExtra extends Converter
     }
 
     /**
-     * Get the max line/column width
+     * Get the max column width
      *
      * @param string $content
      * @param integer $curColWidth
@@ -699,9 +699,9 @@ class ConverterExtra extends Converter
 
         $maxColWidth = max($curMaxColWidth, $this->strlen($content));
 
-		if ($curColWidth !== NULL && $maxColWidth > $curColWidth) {
-		    return $curColWidth;
-		}
+        if ($curColWidth !== NULL && $maxColWidth > $curColWidth) {
+            return $curColWidth;
+        }
 
         return( ( $maxColWidth < $this->maxColWidth ) ? $maxColWidth : $this->maxColWidth );
     }
