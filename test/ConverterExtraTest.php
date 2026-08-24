@@ -375,8 +375,8 @@ EOF;
   <td>Content Cell</td>
 </tr>
 <tr>
-  <td>Long Content Cell 123456789012345678901234567890123456789012345678901234567890</td>
   <td>Content Cell</td>
+  <td>Long Content Cell 123456789012345678901234567890123456789012345678901234567890</td>
 </tr>
 </tbody>
 </table>
