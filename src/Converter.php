@@ -403,7 +403,7 @@ class Converter
                     }
                     break;
                 default:
-                    trigger_error('invalid node type', E_USER_ERROR);
+                    throw new RuntimeException('invalid node type');
                     break;
             }
             $this->lastWasBlockTag = $this->parser->nodeType == 'tag' && $this->parser->isStartTag && $this->parser->isBlockElement;
@@ -1111,7 +1111,7 @@ class Converter
     protected function unstack()
     {
         if (!isset($this->stack[$this->parser->tagName]) || !is_array($this->stack[$this->parser->tagName])) {
-            trigger_error('Trying to unstack from empty stack. This must not happen.', E_USER_ERROR);
+            throw new RuntimeException('Trying to unstack from empty stack. This must not happen.');
         }
 
         return array_pop($this->stack[$this->parser->tagName]);
