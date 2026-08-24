@@ -412,6 +412,7 @@ class ConverterExtra extends Converter
                 $content = str_repeat(' ', $left) . $content . str_repeat(' ', $right);
                 break;
         }
+        $content = $this->nl2br($content);
     }
 
     /**
@@ -668,7 +669,20 @@ class ConverterExtra extends Converter
     }
 
     /**
-     * Get the max line/column width
+     * Replace linebreaks with HTML line breaks
+     *
+     * @param string $content
+     * @return string $content
+     */
+    protected function nl2br($content)
+    {
+        $content = str_replace( ["\r\n", "\r", "\n"], '<br />', $content );
+
+        return $content;
+    }
+
+    /**
+     * Get the max column width
      *
      * @param string $content
      * @param integer $curColWidth
