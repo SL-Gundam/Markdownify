@@ -326,4 +326,67 @@ EOF;
 EOF;
         $this->assertEquals($md, $this->converter->parseString($html));
     }
+
+    public function testTableConversionWithLineBreaks()
+    {
+        $html = <<<EOF
+<table>
+<thead>
+<tr>
+  <th>First Header</th>
+  <th>Second Header</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Content<br />Cell</td>
+  <td>Content Cell</td>
+</tr>
+<tr>
+  <td>Content <br />Cell</td>
+  <td>Content<br />
+ Cell</td>
+</tr>
+</tbody>
+</table>
+EOF;
+        $md = <<<EOF
+| First Header   | Second Header  |
+| -------------- | -------------- |
+| Content  <br />Cell | Content Cell   |
+| Content  <br />Cell | Content  <br />Cell |
+EOF;
+        $this->assertEquals($md, $this->converter->parseString($html));
+    }
+
+    public function testTableConversionWithLongColumns()
+    {
+        $html = <<<EOF
+<table>
+<thead>
+<tr>
+  <th>First Long Header 123456789012345678901234567890123456789012345678901234567890</th>
+  <th>Second Header</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Content Cell</td>
+  <td>Content Cell</td>
+</tr>
+<tr>
+  <td>Long Content Cell 123456789012345678901234567890123456789012345678901234567890</td>
+  <td>Content Cell</td>
+</tr>
+</tbody>
+</table>
+EOF;
+        $md = <<<EOF
+| First Long Header 123456789012345678901234567890123456789012345678901234567890 | Second Header                                      |
+| -------------------------------------------------- | -------------------------------------------------- |
+| Content Cell                                       | Content Cell                                       |
+| Content Cell                                       | Long Content Cell 123456789012345678901234567890123456789012345678901234567890 |
+EOF;
+        $this->assertEquals($md, $this->converter->parseString($html));
+    }
 }
