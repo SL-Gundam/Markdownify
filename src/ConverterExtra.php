@@ -269,9 +269,9 @@ class ConverterExtra extends Converter
      */
     protected function handleTag_table()
     {
-        if ($this->parser->isStartTag) {
+        if (!in_array('table', $this->parser->openTags, true)) {
+            if ($this->parser->isStartTag) {
             // check if upcoming table can be converted
-            if ($this->keepHTML) {
                 if (preg_match($this->tableLookaheadHeader, $this->parser->html, $matches)) {
                     // header seems good, now check body
                     // get align & number of cols
@@ -315,72 +315,68 @@ class ConverterExtra extends Converter
                     $this->handleTagToText();
                 }
             } else {
-                $this->table = [
-                    'rows' => [],
-                    'col_widths' => [],
-                    'aligns' => [],
-                ];
+                // finally build the table in Markdown Extra syntax
+                $separator = [];
+                if (!isset($this->table['aligns'])) {
+                    $this->table['aligns'] = [];
+                }
+                if (!isset($this->table['rows'])) {
+                    $this->table['rows'] = [];
+                }
+                foreach (array_keys($this->table['col_widths']) as $col) {
+                    if (!isset($this->table['aligns'][$col])) {
+                        $this->table['aligns'][$col] = '';
+                    }
+                }
+                // seperator with correct align identifiers
+                foreach ($this->table['aligns'] as $col => $align) {
+                    if (!$this->keepHTML && !isset($this->table['col_widths'][$col])) {
+                        break;
+                    }
+                    $left = ' ';
+                    $right = ' ';
+                    switch ($align) {
+                        case 'left':
+                            $left = ':';
+                            break;
+                        case 'center':
+                            $right = ':';
+                            $left = ':';
+                        case 'right':
+                            $right = ':';
+                            break;
+                    }
+                    array_push($separator, $left . str_repeat('-', $this->table['col_widths'][$col]) . $right);
+                }
+                $separator = '|' . implode('|', $separator) . '|';
+
+                $rows = [];
+                // add padding
+                array_walk_recursive($this->table['rows'], [&$this, 'alignTdContent']);
+                if ($this->tableFirstRowIsHeader) {
+                    $header = array_shift($this->table['rows']);
+                } else {
+                    $header = [];
+                    foreach ($this->table['col_widths'] as $col => $width) {
+                        $header[$col] = str_repeat(' ', $width);
+                    }
+                    ksort($header);
+                }
+                array_push($rows, '| ' . implode(' | ', $header) . ' |');
+                array_push($rows, $separator);
+                foreach ($this->table['rows'] as $row) {
+                    array_push($rows, '| ' . implode(' | ', $row) . ' |');
+                }
+                $this->out(implode("\n" . $this->indent, $rows));
+                $this->table = [];
                 $this->tableFirstRowIsHeader = false;
                 $this->tableCurrentRowHeaderCells = 0;
                 $this->tableCurrentRowDataCells = 0;
-                $this->row = 0;
+                $this->setLineBreaks(2);
             }
         } else {
-            // finally build the table in Markdown Extra syntax
-            $separator = [];
-            if (!isset($this->table['aligns'])) {
-                $this->table['aligns'] = [];
-            }
-            foreach (array_keys($this->table['col_widths']) as $col) {
-                if (!isset($this->table['aligns'][$col])) {
-                    $this->table['aligns'][$col] = '';
-                }
-            }
-            // seperator with correct align identifiers
-            foreach ($this->table['aligns'] as $col => $align) {
-                if (!$this->keepHTML && !isset($this->table['col_widths'][$col])) {
-                    break;
-                }
-                $left = ' ';
-                $right = ' ';
-                switch ($align) {
-                    case 'left':
-                        $left = ':';
-                        break;
-                    case 'center':
-                        $right = ':';
-                        $left = ':';
-                    case 'right':
-                        $right = ':';
-                        break;
-                }
-                array_push($separator, $left . str_repeat('-', $this->table['col_widths'][$col]) . $right);
-            }
-            $separator = '|' . implode('|', $separator) . '|';
-
-            $rows = [];
-            // add padding
-            array_walk_recursive($this->table['rows'], [&$this, 'alignTdContent']);
-            if ($this->tableFirstRowIsHeader) {
-                $header = array_shift($this->table['rows']);
-            } else {
-                $header = [];
-                foreach ($this->table['col_widths'] as $col => $width) {
-                    $header[$col] = str_repeat(' ', $width);
-                }
-                ksort($header);
-            }
-            array_push($rows, '| ' . implode(' | ', $header) . ' |');
-            array_push($rows, $separator);
-            foreach ($this->table['rows'] as $row) {
-                array_push($rows, '| ' . implode(' | ', $row) . ' |');
-            }
-            $this->out(implode("\n" . $this->indent, $rows));
-            $this->table = [];
-            $this->tableFirstRowIsHeader = false;
-            $this->tableCurrentRowHeaderCells = 0;
-            $this->tableCurrentRowDataCells = 0;
-            $this->setLineBreaks(2);
+            // non markdownable nested table
+            $this->handleTagToText();
         }
     }
 
@@ -423,15 +419,17 @@ class ConverterExtra extends Converter
      */
     protected function handleTag_tr()
     {
-        if ($this->parser->isStartTag) {
-            $this->col = -1;
-            $this->tableCurrentRowHeaderCells = 0;
-            $this->tableCurrentRowDataCells = 0;
-        } else {
-            if ($this->row === 0) {
-                $this->tableFirstRowIsHeader = $this->tableCurrentRowHeaderCells > 0 && $this->tableCurrentRowDataCells === 0;
+        if (!in_array('tr', $this->parser->openTags, true)) {
+            if ($this->parser->isStartTag) {
+                $this->col = -1;
+                $this->tableCurrentRowHeaderCells = 0;
+                $this->tableCurrentRowDataCells = 0;
+            } else {
+                if ($this->row === 0) {
+                    $this->tableFirstRowIsHeader = $this->tableCurrentRowHeaderCells > 0 && $this->tableCurrentRowDataCells === 0;
+                }
+                $this->row++;
             }
-            $this->row++;
         }
     }
 
@@ -443,20 +441,22 @@ class ConverterExtra extends Converter
      */
     protected function handleTag_td()
     {
-        if ($this->parser->isStartTag) {
-            $this->tableCurrentRowDataCells++;
-            $this->col++;
-            if (!isset($this->table['col_widths'][$this->col])) {
-                $this->table['col_widths'][$this->col] = 0;
+        if (!in_array('td', $this->parser->openTags, true)) {
+            if ($this->parser->isStartTag) {
+                $this->tableCurrentRowDataCells++;
+                $this->col++;
+                if (!isset($this->table['col_widths'][$this->col])) {
+                    $this->table['col_widths'][$this->col] = 0;
+                }
+                $this->buffer();
+            } else {
+                $buffer = trim((string)$this->unbuffer());
+                if (!isset($this->table['col_widths'][$this->col])) {
+                    $this->table['col_widths'][$this->col] = 0;
+                }
+                $this->table['col_widths'][$this->col] = $this->getMaxColWidth($buffer);
+                $this->table['rows'][$this->row][$this->col] = $buffer;
             }
-            $this->buffer();
-        } else {
-            $buffer = trim($this->unbuffer());
-            if (!isset($this->table['col_widths'][$this->col])) {
-                $this->table['col_widths'][$this->col] = 0;
-            }
-            $this->table['col_widths'][$this->col] = $this->getMaxColWidth($buffer);
-            $this->table['rows'][$this->row][$this->col] = $buffer;
         }
     }
 
@@ -468,15 +468,17 @@ class ConverterExtra extends Converter
      */
     protected function handleTag_th()
     {
-        if ($this->parser->isStartTag) {
-            $this->tableCurrentRowHeaderCells++;
-            $this->tableCurrentRowDataCells--;
-        }
-        if (!$this->keepHTML && !isset($this->table['rows'][1]) && !isset($this->table['aligns'][$this->col + 1])) {
-            if (isset($this->parser->tagAttributes['align'])) {
-                $this->table['aligns'][$this->col + 1] = $this->parser->tagAttributes['align'];
-            } else {
-                $this->table['aligns'][$this->col + 1] = '';
+        if (!in_array('th', $this->parser->openTags, true)) {
+            if ($this->parser->isStartTag) {
+                $this->tableCurrentRowHeaderCells++;
+                $this->tableCurrentRowDataCells--;
+            }
+            if (!$this->keepHTML && !isset($this->table['rows'][1]) && !isset($this->table['aligns'][$this->col + 1])) {
+                if (isset($this->parser->tagAttributes['align'])) {
+                    $this->table['aligns'][$this->col + 1] = $this->parser->tagAttributes['align'];
+                } else {
+                    $this->table['aligns'][$this->col + 1] = '';
+                }
             }
         }
         $this->handleTag_td();
